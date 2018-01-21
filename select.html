@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>JS_SELECT</title>
+</head>
+<body>
+	<div class="container">
+		<ul id="report">
+			
+		</ul>
+	</div>
+ <script>
+ 	var report =(function(){
+ 	      let list = document.getElementById('report');
+	      return function log(message){
+	      	         let item= document.createElement('li');
+	      	          if(typeof(message) !== 'string' && !(message instanceof String) ){
+	      	          	   item.innerText = JSON.stringify(message);
+	      	          }else{
+	      	          	    item.innerText = message;
+	      	          }          
+		           list.appendChild(item);
+		     }
+ 	})()
+ 	
+ </script>	
+<script src="select.js"></script>
+<script src="tests.js"></script>	
+</body>
+</html>
