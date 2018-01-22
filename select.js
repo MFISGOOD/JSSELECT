@@ -3,22 +3,22 @@ var query = function() {
     var JOIN =[];
     var groups = [];
     var q = {
-        _select : (el) => 'all',
-        _from : DB,
-        _where : [],
-        _groupBy : [],
-        _orderBy : [],
-        _having : [],
-        _join:[],
-        isRepeated : {_select : false,_from: false,_groupBy:false,orderBy:false},
+        _select_ : (el) => 'all',
+        _from_ : DB,
+        _where_ : [],
+        _groupBy_ : [],
+        _orderBy_ : [],
+        _having_ : [],
+        _join_:[],
+        isRepeated : {_select_ : false,_from_: false,_groupBy_:false,_orderBy_:false},
         default: function(){
-           this._select = (el) => 'all';
+           this._select_ = (el) => 'all';
            //from : DB,
-           this._where = [];
-           this._groupBy = [];
-           this._orderBy = [];
-           this._having = [];
-           this._join = [];
+           this._where_ = [];
+           this._groupBy_ = [];
+           this._orderBy_ = [];
+           this._having_ = [];
+           this._join_ = [];
            groups = [];
            JOIN = [];
            isRepeated:{false,false,false,false};
@@ -54,118 +54,99 @@ var query = function() {
            //data = data.filter(el => groupSelector[index](el) !== grpName);   
     }
     function _join(){
-       JOIN[0].forEach(function(el){
-                 JOIN.slice(1).forEach(tab => tab.forEach(el2 => DB.push([el,el2])));     
-              });
-            let  result= DB.map(function(el){
-              try{
-                 if(q._select(el) === 'all'){
-                return el;
-              }else{
-                return q._select(el);
-              } 
-              }catch(err){
-                return undefined;
-              }
+                    JOIN[0].forEach(function(el){
+                          JOIN.slice(1).forEach(tab => tab.forEach(el2 => DB.push([el,el2])));     
+                    });
+                    return DB;
+    }
 
-            });
-            return result;
+    function _select(view){
+           return   view.map(function(el){
+                      try{
+                          if(q._select_(el) === 'all'){
+                            return el;
+                          }else{
+                            return q._select_(el);
+                          } 
+                      }catch(err){
+                        return undefined;
+                      }
+                  });
     }
+
     function _joinWhere(){
-      DB=JOIN[0].map(function(el){
-                  let joinsDouble = JOIN.slice(1).map(tab => tab.filter(row => q._where.every(fns => fns.some(fn => fn([el,row])))));
-                  let joins=[];
-                  if(joinsDouble && joinsDouble.length > 0){
-                     joins.push(el);
-                     joinsDouble.forEach(_tab => joins.push(..._tab)); 
-                  }   
-                  return joins;
-                });
-       let result = DB.map(function(el){
-                    try{
-                       if(q._select(el) === 'all'){
-                      return el;
-                    }else{
-                      return q._select(el);
-                    } 
-                    }catch(err){
-                      return undefined;
-                    }   
-          });
-       return result;
+                return  DB=JOIN[0].map(function(el){
+                          let join = JOIN.slice(1).map(tab => tab.filter(row => q._where_.every(fns => fns.some(fn => fn([el,row])))));
+                          let view=[];
+                          if(join && join.length > 0){
+                             view.push(el);
+                             join.forEach(_tab => view.push(..._tab)); 
+                          }   
+                          return view;
+                      });
     }
-    function execute(){
+
+    function _where(){
        var result;
-       if(q._where.length > 0){
+       if(q._where_.length > 0){
             if(JOIN !== [] && JOIN.length > 1 && JOIN.every(arry => Array.isArray(arry))){
                    result = _joinWhere();
+                   result = _select(result);
                    if(DB && DB.length > 0){
                          DB = DB.filter(row => row !== undefined);
                     }
              }else{
-                     result = DB.filter( el => q._where.every(fns => fns.some(fn => fn(el))))
-                                     .map(function(el){
-                                                  try{
-                                                     if(q._select(el) === 'all'){
-                                                           return el;
-                                                  }else{
-                                                          return q._select(el);
-                                                  } 
-                                                  }catch(err){
-                                                    return undefined;
-                                                  }   
-                                        });
+                     result = DB.filter( el => q._where_.every(fns => fns.some(fn => fn(el))));
+                     result=_select(result); 
              }     
        }else{
              if(JOIN !== [] && JOIN.length > 1 && JOIN.every(arry => Array.isArray(arry))){
                     result = _join();
               }else{
-                    result= DB.map(function(el){
-                                              try{
-                                                 if(q._select(el) === 'all'){
-                                                return el;
-                                              }else{
-                                                return q._select(el);
-                                              } 
-                                              }catch(err){
-                                                return undefined;
-                                              }
-
-                                            });
-              }
-        
+                    result=_select(DB);
+              } 
        }
-       if(q._groupBy.length !== 0){
+       return result;
+    }
+    function _groupBy(result){
+       if(q._groupBy_.length !== 0){
             if(result.every(el => !el)){
-               groups=result=recursiveGrouping(q._groupBy,0,DB);
-               groups=result=havingFilter(result, q._having).map(el => q._select(el));
-               if(q._orderBy.length > 0){
-                   result= groups.map(el => {el.sort(...q._orderBy); return el}).sort(...q._orderBy);
+               groups=result=recursiveGrouping(q._groupBy_,0,DB);
+               groups=result=havingFilter(result, q._having_).map(el => q._select_(el));
+               if(q._orderBy_.length > 0){
+                   result= groups.map(el => {el.sort(...q._orderBy_); return el}).sort(...q._orderBy_);
                 }
             }else{
-           if(q._orderBy.length > 0){
-            result= result.sort(...q._orderBy);
+           if(q._orderBy_.length > 0){
+            result= result.sort(...q._orderBy_);
             }
-             groups = result = recursiveGrouping(q._groupBy,0,result);
-             groups=result=havingFilter(result, q._having);
+             groups = result = recursiveGrouping(q._groupBy_,0,result);
+             groups=result=havingFilter(result, q._having_);
             }
 
        }else{
-          if(q._orderBy.length > 0){       
-           result= result.sort(...q._orderBy);
+          if(q._orderBy_.length > 0){       
+           result= result.sort(...q._orderBy_);
          }
        }
+       return result;
+    }
+    function execute(){
+       var result;
+       result = _where();
+       result = _groupBy(result);
+       q.default();
        return result.filter(el => el === 0 ||  el);   
     }
     function select(fn = (el)=> 'all'){
-         if(q.isRepeated._select) throw new Error('Duplicate SELECT');
-         q.isRepeated._select = true;
-         q._select = fn;
+         if(q.isRepeated._select_) throw new Error('Duplicate SELECT');
+         q.isRepeated._select_ = true;
+         q._select_ = fn;
          return {from: from,execute: execute,select: select,groupBy: groupBy,where: where}
     }
     function from(db,...rest){
-         if(q.isRepeated._from) throw new Error('Duplicate FROM');
-         q.isRepeated._from = true;
+         if(q.isRepeated._from_) throw new Error('Duplicate FROM');
+         q.isRepeated._from_ = true;
          if(rest.length === 0){
              DB = db;
          }else{
@@ -174,23 +155,23 @@ var query = function() {
          return {select: select,where: where,groupBy:groupBy,execute: execute,from:from,orderBy: orderBy}
     }
     function where(...filters){
-      q._where.push(filters);
+      q._where_.push(filters);
       return {orderBy : orderBy,groupBy:groupBy,execute: execute,from:from,where:where,select:select}
     }
     function orderBy(...compareFn){
-         if(q.isRepeated._orderBy) throw new Error('Duplicate ORDERBY');
-         q.isRepeated._orderBy = true;
-         q._orderBy= compareFn;
+         if(q.isRepeated._orderBy_) throw new Error('Duplicate ORDERBY');
+         q.isRepeated._orderBy_ = true;
+         q._orderBy_= compareFn;
          return {execute : execute,orderBy: orderBy,groupBy: groupBy}
     }
     function having(filters){
-      q._having.push(filters);
+      q._having_.push(filters);
       return {execute: execute,having: having}
     }
     function groupBy(...fns){
-         if(q.isRepeated._groupBy) throw new Error('Duplicate GROUPBY');
-         q.isRepeated._groupBy = true;
-         q._groupBy = fns;
+         if(q.isRepeated._groupBy_) throw new Error('Duplicate GROUPBY');
+         q.isRepeated._groupBy_ = true;
+         q._groupBy_ = fns;
          return {orderBy : orderBy,execute: execute,having:having,groupBy: groupBy,from:from}
     }
     return {
