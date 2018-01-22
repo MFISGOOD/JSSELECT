@@ -25,6 +25,34 @@ var q = {
     }
 };
 
+ function recursiveGrouping (groupSelector,index,data){
+      let result = [];
+      if(index >= groupSelector.length) return data ;
+      if(data && data.length > 0 ){
+          let groupName = groupSelector[index](data[0]);
+          while(groupName){
+              let group = [];
+              group.push(groupName);
+              let groupData = data.filter(el => groupSelector[index](el) === groupName);
+              data = data.filter(el => groupSelector[index](el) !== groupName);
+              group.push(recursiveGrouping(groupSelector.slice(1),index,groupData));
+               if(data && data.length > 0 ){
+                  groupName = groupSelector[index](data[0]); 
+               }else{
+                   groupName = null;
+               }
+              if(q._having.length >  0){
+                  if(q._having.every(fn => fn(group))){
+                     result.push(group);
+                  }
+              }else{
+               result.push(group);
+              }          
+         }   
+     }      
+     return result;
+ }
+
 function execute(){
    var result;
    if(q._where.length > 0){
@@ -52,7 +80,7 @@ function execute(){
                 if(DB && DB.length > 0){
                 DB = DB.filter(row => row !== undefined);
                 }
-        }else{
+         }else{
             result = DB.filter( el => q._where.every(fns => fns.some(fn => fn(el)))).map(function(el){
             try{
                if(q._select(el) === 'all'){
@@ -66,7 +94,7 @@ function execute(){
             });
       }
        
-   }else{
+  }else{
      if(JOIN !== [] && JOIN.length > 1 && JOIN.every(arry => Array.isArray(arry))){
           JOIN[0].forEach(function(el){
              JOIN.slice(1).forEach(tab => tab.forEach(el2 => DB.push([el,el2])));     
@@ -99,37 +127,10 @@ function execute(){
      }
     
   }
- var groupRec = function(groups,index,data){
-      let result = [];
-     if(index >= groups.length) return data ;
-     if(data && data.length > 0 ){
-         let group = groups[index](data[0]);
-         while(group){
-            let resultGroup = [];
-            resultGroup.push(group);
-            let dataGroup = data.filter(el => groups[index](el) === group);
-            data = data.filter(el => groups[index](el) !== group);
-            resultGroup.push(groupRec(groups.slice(1),index,dataGroup));
-             if(data && data.length > 0 ){
-                group = groups[index](data[0]); 
-             }else{
-                 group = null;
-             }
-            if(q._having.length >  0){
-                if(q._having.every(fn => fn(resultGroup))){
-                   result.push(resultGroup);
-                }
-            }else{
-             result.push(resultGroup);
-            }          
-         }
-     
-     }      
-     return result;
- }
- if(q._groupBy.length !== 0){
+
+    if(q._groupBy.length !== 0){
      if(result.every(el => !el)){
-        groups=result=groupRec(q._groupBy,0,DB).map(el => q._select(el));
+        groups=result=recursiveGrouping(q._groupBy,0,DB).map(el => q._select(el));
         if(q._orderBy.length > 0){
         result= groups.map(el => {el.sort(...q._orderBy); return el}).sort(...q._orderBy);
        }
@@ -137,7 +138,7 @@ function execute(){
        if(q._orderBy.length > 0){
         result= result.sort(...q._orderBy);
         }
-       groups = result = groupRec(q._groupBy,0,result);
+       groups = result = recursiveGrouping(q._groupBy,0,result);
 
      }
          
@@ -150,6 +151,7 @@ function execute(){
      return result.filter(el => el === 0 ||  el);   
  
 }
+
 function select(fn = (el)=> 'all'){
      if(q.repeatClause._select) throw new Error('Duplicate SELECT');
      q.repeatClause._select = true;
@@ -163,8 +165,7 @@ function from(db,...rest){
          DB = db;
      }else{
         JOIN = [db,...rest]
-     }
-    
+     }   
      return {select: select,where: where,groupBy:groupBy,execute: execute,from:from,orderBy: orderBy}
 }
 function where(...filters){
@@ -187,7 +188,6 @@ function groupBy(...fns){
      q._groupBy = fns;
  return {orderBy : orderBy,execute: execute,having:having,groupBy: groupBy,from:from}
 }
-
 
 return {
   select: select,
