@@ -53,20 +53,21 @@ var query = function() {
                                     )
            //data = data.filter(el => groupSelector[index](el) !== grpName);   
     }
-    function _join(){
-                    JOIN[0].forEach(function(el){
-                          JOIN.slice(1).forEach(tab => tab.forEach(el2 => DB.push([el,el2])));     
+    function _join(tables){
+                    var result = [];
+                    tables[0].forEach(function(el){
+                          tables.slice(1).forEach(tab => tab.forEach(el2 => result.push([el,el2])));     
                     });
-                    return DB;
+                    return result;
     }
 
-    function _select(view){
-           return   view.map(function(el){
+    function _select(table,fields){
+           return   table.map(function(el){
                       try{
-                          if(q._select_(el) === 'all'){
+                          if(fields(el) === 'all'){
                             return el;
                           }else{
-                            return q._select_(el);
+                            return fields(el);
                           } 
                       }catch(err){
                         return undefined;
@@ -74,9 +75,9 @@ var query = function() {
                   });
     }
 
-    function _joinWhere(){
-                return  DB=JOIN[0].map(function(el){
-                          let join = JOIN.slice(1).map(tab => tab.filter(row => q._where_.every(fns => fns.some(fn => fn([el,row])))));
+    function _joinWhere(tables,filters){
+                return  tables[0].map(function(el){
+                          let join = tables.slice(1).map(tab => tab.filter(row => filters.every(fns => fns.some(fn => fn([el,row])))));
                           let view=[];
                           if(join && join.length > 0){
                              view.push(el);
@@ -85,25 +86,28 @@ var query = function() {
                           return view;
                       });
     }
+   function _where(table,filters){
+          return table.filter( el => q._where_.every(fns => fns.some(fn => fn(el))));                 
+   }
 
-    function _where(){
+    function _where_select_join(){
        var result;
        if(q._where_.length > 0){
             if(JOIN !== [] && JOIN.length > 1 && JOIN.every(arry => Array.isArray(arry))){
-                   result = _joinWhere();
-                   result = _select(result);
+                   result = _joinWhere(JOIN,q._where_);
+                   result = _select(result,q._select);
                    if(DB && DB.length > 0){
                          DB = DB.filter(row => row !== undefined);
                     }
              }else{
-                     result = DB.filter( el => q._where_.every(fns => fns.some(fn => fn(el))));
-                     result=_select(result); 
+                     result = _where(DB,q._where_)
+                     result=_select(result,q._select_);
              }     
        }else{
              if(JOIN !== [] && JOIN.length > 1 && JOIN.every(arry => Array.isArray(arry))){
-                    result = _join();
+                    result = _join(JOIN);
               }else{
-                    result=_select(DB);
+                    result=_select(DB,q._select_);
               } 
        }
        return result;
@@ -133,7 +137,7 @@ var query = function() {
     }
     function execute(){
        var result;
-       result = _where();
+       result = _where_select_join();
        result = _groupBy(result);
        q.default();
        return result.filter(el => el === 0 ||  el);   
